@@ -1,0 +1,129 @@
+---
+title: "Group Project"
+author: "Liu, Donghan, Donghan2"
+date: "4/5/2018"
+output: html_document
+---
+
+```{r, message=FALSE,warning=FALSE}
+library(biganalytics)
+air0205 = attach.big.matrix("air0205.desc")
+```
+
+##Date Split by Year
+
+```{r}
+air02 = air0205[air0205[,'year'] == '2002',]
+air05 = air0205[air0205[,'year'] == '2005',]
+```
+
+
+##Flight number over the various time type
+
+###By Months
+```{r}
+library(ggplot2)
+flight_mon02 = c(rep(0,12))
+flight_mon05 = c(rep(0,12))
+month = 1:12
+for (i in 1:12){
+  flight_mon02[i] = (nrow(air02[air02[,'month'] == month[i],]))
+  flight_mon05[i] = (nrow(air05[air05[,'month'] == month[i],]))
+}
+mon = as.data.frame(cbind(Flight_Number = flight_mon02, flight_mon05, Months = c(1:12)))
+ggplot(data=mon) + 
+  geom_line(aes(x = Months, y = Flight_Number, colour = "02 Flight Number by Mon")) + 
+  geom_line(aes(x = Months, y = flight_mon05, colour = "05 Flight Number by Mon"))+
+  scale_x_continuous(breaks=seq(1, 12, 1))
+```
+
+
+
+###By Day of Week
+
+```{r}
+flight_week_02 = c(rep(0,7))
+flight_week_05 = c(rep(0,7))
+week = 1:7
+for (i in 1:7){
+  flight_week_02[i] = (nrow(air02[air02[,'dayofweek'] == week[i],]))
+  flight_week_05[i] = (nrow(air05[air05[,'dayofweek'] == week[i],]))
+}
+week = as.data.frame(cbind(flight_week_02, flight_week_05, Weeks = c(1:7)))
+ggplot(data=week) + 
+  geom_line(aes(x = Weeks, y = flight_week_02, colour = "02 Flight Number by Week")) + 
+  geom_line(aes(x = Weeks, y = flight_week_05, colour = "05 Flight Number by Week"))+
+  scale_x_continuous(breaks=seq(1, 7, 1))
+
+```
+
+
+##Flight number by destination airport
+
+```{r}
+mapping = get(load("nonintegerColFactors.Rda"))
+```
+
+```{r}
+flight_dest_02 = air02[,'dest']
+flight_dest_05 = air05[,'dest']
+freq_dest_02 = rev(table(flight_dest_02)[order(table(flight_dest_02))])
+freq_dest_05 = rev(table(flight_dest_05)[order(table(flight_dest_05))])
+x = rbind(freq_dest_02[1:5],freq_dest_05[1:5])
+colnames(x) = c("ORD/ATL","DFW/ORD","ATL/DFW","DFW/DFW","PHX/IAH")
+barplot(x,col=c("lightblue","blue"), beside=TRUE, legend = c("2002","2005"), xlab = "Airport Code", ylab = "Destination Flight Number")
+```
+
+
+##Flight number by origin airport
+
+```{r}
+flight_ori_02 = air02[,'origin']
+flight_ori_05 = air05[,'origin']
+freq_ori_02 = rev(table(flight_ori_02)[order(table(flight_ori_02))])
+freq_ori_05 = rev(table(flight_ori_05)[order(table(flight_ori_05))])
+x = rbind(freq_ori_02[1:5],freq_ori_05[1:5])
+colnames(x) = c("ORD/ATL","DFW/ORD","ATL/DFW","LAX/LAX","PHX/IAH")
+barplot(x,col=c("lightblue","blue"), beside=TRUE, legend = c("2002","2005"), xlab = "Airport Code", ylab = "Origin Flight Number")
+```
+
+
+##Flight number by origin state
+
+```{r}
+flight_ori_state_02 = air02[,'originstate']
+flight_ori_state_05 = air05[,'originstate']
+freq_ori_state_02 = rev(table(flight_ori_state_02)[order(table(flight_ori_state_02))])
+freq_ori_state_05 = rev(table(flight_ori_state_05)[order(table(flight_ori_state_05))])
+x = rbind(freq_ori_state_02[1:5],freq_ori_state_05[1:5])
+colnames(x) = c("TX/CA","CA/TX","IL/FL","FL/GA","GA/IL")
+barplot(x,col=c("lightblue","blue"), beside=TRUE, legend = c("2002","2005"), xlab = "State Code", ylab = "Origin Flight Number")
+```
+
+
+##Flight number by destination state
+
+```{r}
+flight_dest_state_02 = air02[,'deststate']
+flight_dest_state_05 = air05[,'deststate']
+freq_dest_state_02 = rev(table(flight_dest_state_02)[order(table(flight_dest_state_02))])
+freq_dest_state_05 = rev(table(flight_dest_state_05)[order(table(flight_dest_state_05))])
+x = rbind(freq_dest_state_02[1:5],freq_dest_state_05[1:5])
+colnames(x) = c("TX/CA","CA/TX","IL/FL","FL/GA","GA/IL")
+barplot(x,col=c("lightblue","blue"), beside=TRUE, legend = c("2002","2005"), xlab = "State Code", ylab = "Destination Flight Number")
+```
+
+##Flight number by carrier
+
+```{r}
+flight_carrier_02 = air02[,'uniquecarrier']
+flight_carrier_05 = air05[,'uniquecarrier']
+freq_carrier_02 = rev(table(flight_carrier_02)[order(table(flight_carrier_02))])
+freq_carrier_05 = rev(table(flight_carrier_05)[order(table(flight_carrier_05))])
+x = rbind(freq_carrier_02[1:5],freq_carrier_05[1:5])
+colnames(x) = c("WN/WN","AA/AA","DL/DL","UA/MQ","NW/OO")
+barplot(x,col=c("lightblue","blue"), beside=TRUE, legend = c("2002","2005"), xlab = "State Code", ylab = "Destination Flight Number")
+```
+
+
+
