@@ -1,0 +1,605 @@
+---
+title: "DelayinArrDep"
+author: "Dilin Chen"
+date: "4/19/2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(biganalytics)
+
+```
+
+
+```{r}
+# Initialize the big matrix needed for delay analysis.
+setwd("~/Stat480/group-project")
+x <- attach.big.matrix("air0205.desc")
+head(x)
+```
+
+```{r}
+# correlation between arrival delay and departure delays.
+matrixCor <- x[,c(15:16,25:29)]
+Cor <- cor(matrixCor,use="pairwise.complete.obs")[2:7,1]
+Cor
+```
+
+```{r}
+xnames = c("depdelay", "carrierdelay", "weatherdelay",
+           "nasdelay", "securitydelay", "lateaircraftdelay")
+plot(Cor, type="p", xaxt = "n", 
+     main="Correlation between Arrival Delay and other delays",
+     ylab="Correlation Values", xlab="Different reasons")
+axis(1, at=1:6, labels=xnames)
+```
+```{r}
+# Number of flights per year.
+yearCount = integer(2)
+yearCount[1] <-  sum(x[,"year"] == 2002, na.rm = TRUE)
+yearCount[2] <-  sum(x[,"year"] == 2005,na.rm = TRUE)
+
+# Arrival delay rate over years
+ArrdelayRateAnn = double(2)
+ArrdelayRateAnn[1] <-  sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)/yearCount[1]
+ArrdelayRateAnn[2] <-  sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)/yearCount[2]
+ArrdelayRateAnn
+
+```
+
+```{r}
+# Different delay rate for each year.
+ArrdelayAnn = double(2)
+ArrdelayAnn[1] <-  sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)
+ArrdelayAnn[2] <-  sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)
+
+delayrate <- matrix(,nrow=2,ncol=0)
+# Depature delay rate over years
+DepdelayRateAnn = double(2)
+DepdelayRateAnn[1] <-  sum((x[,"depdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)/ArrdelayAnn[1]
+DepdelayRateAnn[2] <-  sum((x[,"depdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)/ArrdelayAnn[2]
+
+delayrate<-cbind(delayrate,DepdelayRateAnn)
+
+# Carrier delay rate over years
+CardelayRateAnn = double(2)
+CardelayRateAnn[1] <-  sum((x[,"carrierdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)/ArrdelayAnn[1]
+CardelayRateAnn[2] <-  sum((x[,"carrierdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)/ArrdelayAnn[2]
+
+delayrate<-cbind(delayrate,CardelayRateAnn)
+
+# Weather delay rate over years
+WeadelayRateAnn = double(2)
+WeadelayRateAnn[1] <-  sum((x[,"weatherdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)/ArrdelayAnn[1]
+WeadelayRateAnn[2] <-  sum((x[,"weatherdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)/ArrdelayAnn[2]
+
+delayrate<-cbind(delayrate,WeadelayRateAnn)
+
+# National air system delay rate over years
+NasdelayRateAnn = double(2)
+NasdelayRateAnn[1] <-  sum((x[,"nasdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)/ArrdelayAnn[1]
+NasdelayRateAnn[2] <-  sum((x[,"nasdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)/ArrdelayAnn[2]
+
+delayrate<-cbind(delayrate,NasdelayRateAnn)
+
+# Security delay rate over years
+SecdelayRateAnn = double(2)
+SecdelayRateAnn[1] <-  sum((x[,"securitydelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)/ArrdelayAnn[1]
+SecdelayRateAnn[2] <-  sum((x[,"securitydelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)/ArrdelayAnn[2]
+
+delayrate<-cbind(delayrate,SecdelayRateAnn)
+
+# Late Aircraft delay rate over years
+LadelayRateAnn = double(2)
+LadelayRateAnn[1] <-  sum((x[,"lateaircraftdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)/ArrdelayAnn[1]
+LadelayRateAnn[2] <-  sum((x[,"lateaircraftdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)/ArrdelayAnn[2]
+
+delayrate<-cbind(delayrate,LadelayRateAnn)
+delayrate
+```
+
+```{r}
+# Plot for annual delay rate caused by different reasons for each year.
+colnames(delayrate) = c("depdelay", "carrierdelay", "weatherdelay",
+           "nasdelay", "securitydelay", "lateaircraftdelay")
+barplot(delayrate, col=c("blue","lightblue"), beside=TRUE,
+        main="Different delay rate for each year",
+        ylab="Delay rate", xlab="Delay reasons") #plot
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1)
+```
+
+```{r}
+# Monthly arrival delay rate.
+ArrdelayRateMonTotal <- matrix(, nrow = 0, ncol = 12)
+ArrdelayRateMon <- integer(12)
+for (j in 1:12){
+    ArrdelayRateMon[j] <-  sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2002) & 
+                                 (x[, "month"]==j), na.rm = TRUE)/sum((x[,"year"] ==2002)
+                                                                      & (x[, "month"]==j),
+                                                                      na.rm = TRUE)
+  }
+ArrdelayRateMonTotal <- rbind(ArrdelayRateMonTotal, ArrdelayRateMon)
+for (j in 1:12){
+    ArrdelayRateMon[j] <-  sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2005) & 
+                                 (x[, "month"]==j), na.rm = TRUE)/sum((x[,"year"] ==2005)
+                                                                      & (x[, "month"]==j),
+                                                                      na.rm = TRUE)
+  }
+ArrdelayRateMonTotal <- rbind(ArrdelayRateMonTotal, ArrdelayRateMon)
+
+ArrdelayRateMonTotal
+```
+
+```{r}
+matplot(t(ArrdelayRateMonTotal), type = c("b"), pch = 1, col = c("blue","lightblue")) 
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1) 
+```
+
+```{r}
+# Average daily arrival delay rate over weeks for each year.
+ArrdelayRateWeekThoTotal <- matrix(, nrow = 0, ncol = 7)
+ArrdelayRateWeekTho <- integer(7)
+for (j in 1:7){
+    ArrdelayRateWeekTho[j] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2002) 
+                                   & (x[, "dayofweek"]==j), 
+                                   na.rm = TRUE)/sum((x[,"year"] ==2002)
+                                                     & (x[, "dayofweek"]==j), 
+                                                     na.rm = TRUE)
+  }
+ArrdelayRateWeekThoTotal <- rbind(ArrdelayRateWeekThoTotal, ArrdelayRateWeekTho)
+for (j in 1:7){
+    ArrdelayRateWeekTho[j] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2005) 
+                                   & (x[, "dayofweek"]==j), 
+                                   na.rm = TRUE)/sum((x[,"year"] ==2005)
+                                                     & (x[, "dayofweek"]==j), 
+                                                     na.rm = TRUE)
+  }
+ArrdelayRateWeekThoTotal <- rbind(ArrdelayRateWeekThoTotal, ArrdelayRateWeekTho)
+
+ArrdelayRateWeekThoTotal
+
+```
+
+```{r}
+matplot(t(ArrdelayRateWeekThoTotal), type = c("b"), pch = 1, col = c("blue","lightblue"))
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1) 
+```
+
+```{r}
+# Arrival delay rate for each week over years.
+```
+
+```{r}
+# Weather Impact
+# Monthly Weather delay rate for each year.
+WeadelayRateMonTotal <- matrix(, nrow = 0, ncol = 12)
+
+WeadelayRateMon <- integer(12)
+for (j in 1:12){
+    WeadelayRateMon[j] <-  sum((x[,"weatherdelay"] > 0) & (x[,"year"] == 2002) & 
+                                 (x[, "month"]==j), na.rm = TRUE)/sum((x[,"year"] ==2002)
+                                                                      & (x[, "month"]==j),
+                                                                      na.rm = TRUE)
+  }
+WeadelayRateMonTotal <- rbind(WeadelayRateMonTotal, WeadelayRateMon)
+
+for (j in 1:12){
+    WeadelayRateMon[j] <-  sum((x[,"weatherdelay"] > 0) & (x[,"year"] == 2005) & 
+                                 (x[, "month"]==j), na.rm = TRUE)/sum((x[,"year"] ==2005)
+                                                                      & (x[, "month"]==j),
+                                                                      na.rm = TRUE)
+  }
+WeadelayRateMonTotal <- rbind(WeadelayRateMonTotal, WeadelayRateMon)
+
+WeadelayRateMonTotal
+```
+
+```{r}
+matplot(t(WeadelayRateMonTotal), type = c("b"), pch = 1, col = c("blue","lightblue"))
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1) 
+```
+
+```{r}
+# Different delay rate with different delay time range (1-60, 60-240, 240-720, >720) for each year.
+# Total depature delay number each years.
+DepdelayAnn = double(2)
+DepdelayAnn[1] <-  sum((x[,"depdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)
+DepdelayAnn[2] <-  sum((x[,"depdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)
+
+DepdelayRateAnnSepTotal <- matrix(, nrow=0,ncol=4)
+
+DepdelayRateAnnSep = double(4)
+DepdelayRateAnnSep[1] <-  sum((x[,"depdelay"] > 0) & (x[,"depdelay"] <= 60)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/DepdelayAnn[1]
+DepdelayRateAnnSep[2] <-  sum((x[,"depdelay"] > 60) & (x[,"depdelay"] <= 240)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/DepdelayAnn[1]
+DepdelayRateAnnSep[3] <-  sum((x[,"depdelay"] > 240) & (x[,"depdelay"] <= 720)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/DepdelayAnn[1]
+DepdelayRateAnnSep[4] <-  sum((x[,"depdelay"] > 720) & (x[,"year"] == 2002), 
+                              na.rm = TRUE)/DepdelayAnn[1]
+DepdelayRateAnnSepTotal<-rbind(DepdelayRateAnnSepTotal,DepdelayRateAnnSep)
+
+DepdelayRateAnnSep[1] <-  sum((x[,"depdelay"] > 0) & (x[,"depdelay"] <= 60)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/DepdelayAnn[2]
+DepdelayRateAnnSep[2] <-  sum((x[,"depdelay"] > 60) & (x[,"depdelay"] <= 240)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/DepdelayAnn[2]
+DepdelayRateAnnSep[3] <-  sum((x[,"depdelay"] > 240) & (x[,"depdelay"] <= 720)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/DepdelayAnn[2]
+DepdelayRateAnnSep[4] <-  sum((x[,"depdelay"] > 720) & (x[,"year"] == 2005), 
+                              na.rm = TRUE)/DepdelayAnn[2]
+DepdelayRateAnnSepTotal<-rbind(DepdelayRateAnnSepTotal,DepdelayRateAnnSep)
+
+DepdelayRateAnnSepTotal
+```
+
+```{r}
+# Plot for departure delay time range for each year.
+colnames(DepdelayRateAnnSepTotal) = c("0-1h", "1-4h", "4-12h", "12h&over")
+barplot(DepdelayRateAnnSepTotal,col=c("blue","lightblue"), beside=TRUE, 
+        main="Departure delay time rate for each year", xlab="Delay time")
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1)
+
+```
+
+
+
+```{r}
+# Total carrier delay number each years.
+CardelayAnn = double(2)
+CardelayAnn[1] <-  sum((x[,"carrierdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)
+CardelayAnn[2] <-  sum((x[,"carrierdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)
+
+CardelayRateAnnSepTotal <- matrix(, nrow=0,ncol=4)
+
+CardelayRateAnnSep = double(4)
+CardelayRateAnnSep[1] <-  sum((x[,"carrierdelay"] > 0) & (x[,"carrierdelay"] <= 60)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/CardelayAnn[1]
+CardelayRateAnnSep[2] <-  sum((x[,"carrierdelay"] > 60) & (x[,"carrierdelay"] <= 240)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/CardelayAnn[1]
+CardelayRateAnnSep[3] <-  sum((x[,"carrierdelay"] > 240) & (x[,"carrierdelay"] <= 720)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/CardelayAnn[1]
+CardelayRateAnnSep[4] <-  sum((x[,"carrierdelay"] > 720) & (x[,"year"] == 2002), 
+                              na.rm = TRUE)/CardelayAnn[1]
+CardelayRateAnnSepTotal<-rbind(CardelayRateAnnSepTotal,CardelayRateAnnSep)
+
+CardelayRateAnnSep[1] <-  sum((x[,"carrierdelay"] > 0) & (x[,"carrierdelay"] <= 60)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/CardelayAnn[2]
+CardelayRateAnnSep[2] <-  sum((x[,"carrierdelay"] > 60) & (x[,"carrierdelay"] <= 240)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/CardelayAnn[2]
+CardelayRateAnnSep[3] <-  sum((x[,"carrierdelay"] > 240) & (x[,"carrierdelay"] <= 720)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/CardelayAnn[2]
+CardelayRateAnnSep[4] <-  sum((x[,"carrierdelay"] > 720) & (x[,"year"] == 2005), 
+                              na.rm = TRUE)/CardelayAnn[2]
+CardelayRateAnnSepTotal<-rbind(CardelayRateAnnSepTotal,CardelayRateAnnSep)
+
+CardelayRateAnnSepTotal
+```
+
+```{r}
+# Plot for departure delay time range for each year.
+colnames(CardelayRateAnnSepTotal) = c("0-1h", "1-4h", "4-12h", "12h&over")
+barplot(CardelayRateAnnSepTotal,col=c("blue","lightblue"), beside=TRUE, 
+        main="Carrier delay time rate for each year", xlab="Delay time")
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1)
+
+```
+
+```{r}
+# Total weather delay number each years.
+WeadelayAnn = double(2)
+WeadelayAnn[1] <-  sum((x[,"weatherdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)
+WeadelayAnn[2] <-  sum((x[,"weatherdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)
+
+WeadelayRateAnnSepTotal <- matrix(, nrow=0,ncol=4)
+
+WeadelayRateAnnSep = double(4)
+WeadelayRateAnnSep[1] <-  sum((x[,"weatherdelay"] > 0) & (x[,"weatherdelay"] <= 60)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/WeadelayAnn[1]
+WeadelayRateAnnSep[2] <-  sum((x[,"weatherdelay"] > 60) & (x[,"weatherdelay"] <= 240)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/WeadelayAnn[1]
+WeadelayRateAnnSep[3] <-  sum((x[,"weatherdelay"] > 240) & (x[,"weatherdelay"] <= 720)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/WeadelayAnn[1]
+WeadelayRateAnnSep[4] <-  sum((x[,"weatherdelay"] > 720) & (x[,"year"] == 2002), 
+                              na.rm = TRUE)/WeadelayAnn[1]
+WeadelayRateAnnSepTotal<-rbind(WeadelayRateAnnSepTotal,WeadelayRateAnnSep)
+
+WeadelayRateAnnSep[1] <-  sum((x[,"weatherdelay"] > 0) & (x[,"weatherdelay"] <= 60)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/WeadelayAnn[2]
+WeadelayRateAnnSep[2] <-  sum((x[,"weatherdelay"] > 60) & (x[,"weatherdelay"] <= 240)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/WeadelayAnn[2]
+WeadelayRateAnnSep[3] <-  sum((x[,"weatherdelay"] > 240) & (x[,"weatherdelay"] <= 720)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/WeadelayAnn[2]
+WeadelayRateAnnSep[4] <-  sum((x[,"weatherdelay"] > 720) & (x[,"year"] == 2005), 
+                              na.rm = TRUE)/WeadelayAnn[2]
+WeadelayRateAnnSepTotal<-rbind(WeadelayRateAnnSepTotal,WeadelayRateAnnSep)
+
+WeadelayRateAnnSepTotal
+```
+
+```{r}
+# Plot for weather delay time range for each year.
+colnames(WeadelayRateAnnSepTotal) = c("0-1h", "1-4h", "4-12h", "12h&over")
+barplot(WeadelayRateAnnSepTotal,col=c("blue","lightblue"), beside=TRUE, 
+        main="Weather delay time rate for each year", xlab="Delay time")
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1)
+
+```
+
+```{r}
+# Total national air system delay number each years.
+NasdelayAnn = double(2)
+NasdelayAnn[1] <-  sum((x[,"nasdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)
+NasdelayAnn[2] <-  sum((x[,"nasdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)
+
+NasdelayRateAnnSepTotal <- matrix(, nrow=0,ncol=4)
+
+NasdelayRateAnnSep = double(4)
+NasdelayRateAnnSep[1] <-  sum((x[,"nasdelay"] > 0) & (x[,"nasdelay"] <= 60)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/NasdelayAnn[1]
+NasdelayRateAnnSep[2] <-  sum((x[,"nasdelay"] > 60) & (x[,"nasdelay"] <= 240)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/NasdelayAnn[1]
+NasdelayRateAnnSep[3] <-  sum((x[,"nasdelay"] > 240) & (x[,"nasdelay"] <= 720)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/NasdelayAnn[1]
+NasdelayRateAnnSep[4] <-  sum((x[,"nasdelay"] > 720) & (x[,"year"] == 2002), 
+                              na.rm = TRUE)/NasdelayAnn[1]
+NasdelayRateAnnSepTotal<-rbind(NasdelayRateAnnSepTotal,NasdelayRateAnnSep)
+
+NasdelayRateAnnSep[1] <-  sum((x[,"nasdelay"] > 0) & (x[,"nasdelay"] <= 60)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/NasdelayAnn[2]
+NasdelayRateAnnSep[2] <-  sum((x[,"nasdelay"] > 60) & (x[,"nasdelay"] <= 240)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/NasdelayAnn[2]
+NasdelayRateAnnSep[3] <-  sum((x[,"nasdelay"] > 240) & (x[,"nasdelay"] <= 720)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/NasdelayAnn[2]
+NasdelayRateAnnSep[4] <-  sum((x[,"nasdelay"] > 720) & (x[,"year"] == 2005), 
+                              na.rm = TRUE)/NasdelayAnn[2]
+NasdelayRateAnnSepTotal<-rbind(NasdelayRateAnnSepTotal,NasdelayRateAnnSep)
+
+NasdelayRateAnnSepTotal
+```
+
+```{r}
+# Plot for national air system delay time range for each year.
+colnames(NasdelayRateAnnSepTotal) = c("0-1h", "1-4h", "4-12h", "12h&over")
+barplot(NasdelayRateAnnSepTotal,col=c("blue","lightblue"), beside=TRUE, 
+        main="National air system delay time rate for each year", xlab="Delay time")
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1)
+
+```
+
+```{r}
+# Total national air system delay number each years.
+SecdelayAnn = double(2)
+SecdelayAnn[1] <-  sum((x[,"securitydelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)
+SecdelayAnn[2] <-  sum((x[,"securitydelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)
+
+SecdelayRateAnnSepTotal <- matrix(, nrow=0,ncol=4)
+
+SecdelayRateAnnSep = double(4)
+SecdelayRateAnnSep[1] <-  sum((x[,"securitydelay"] > 0) & (x[,"securitydelay"] <= 60)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/SecdelayAnn[1]
+SecdelayRateAnnSep[2] <-  sum((x[,"securitydelay"] > 60) & (x[,"securitydelay"] <= 240)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/SecdelayAnn[1]
+SecdelayRateAnnSep[3] <-  sum((x[,"securitydelay"] > 240) & (x[,"securitydelay"] <= 720)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/SecdelayAnn[1]
+SecdelayRateAnnSep[4] <-  sum((x[,"securitydelay"] > 720) & (x[,"year"] == 2002), 
+                              na.rm = TRUE)/SecdelayAnn[1]
+SecdelayRateAnnSepTotal<-rbind(SecdelayRateAnnSepTotal,SecdelayRateAnnSep)
+
+SecdelayRateAnnSep[1] <-  sum((x[,"securitydelay"] > 0) & (x[,"securitydelay"] <= 60)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/SecdelayAnn[2]
+SecdelayRateAnnSep[2] <-  sum((x[,"securitydelay"] > 60) & (x[,"securitydelay"] <= 240)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/SecdelayAnn[2]
+SecdelayRateAnnSep[3] <-  sum((x[,"securitydelay"] > 240) & (x[,"securitydelay"] <= 720)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/SecdelayAnn[2]
+SecdelayRateAnnSep[4] <-  sum((x[,"securitydelay"] > 720) & (x[,"year"] == 2005), 
+                              na.rm = TRUE)/SecdelayAnn[2]
+SecdelayRateAnnSepTotal<-rbind(SecdelayRateAnnSepTotal,SecdelayRateAnnSep)
+
+SecdelayRateAnnSepTotal
+```
+
+```{r}
+# Plot for security delay time range for each year.
+colnames(SecdelayRateAnnSepTotal) = c("0-1h", "1-4h", "4-12h", "12h&over")
+barplot(SecdelayRateAnnSepTotal,col=c("blue","lightblue"), beside=TRUE, 
+        main="Security delay time rate for each year", xlab="Delay time")
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1)
+
+```
+
+```{r}
+# Total national air system delay number each years.
+LadelayAnn = double(2)
+LadelayAnn[1] <-  sum((x[,"lateaircraftdelay"] > 0) & (x[,"year"] == 2002), 
+                            na.rm = TRUE)
+LadelayAnn[2] <-  sum((x[,"lateaircraftdelay"] > 0) & (x[,"year"] == 2005), 
+                            na.rm = TRUE)
+
+LadelayRateAnnSepTotal <- matrix(, nrow=0,ncol=4)
+
+LadelayRateAnnSep = double(4)
+LadelayRateAnnSep[1] <-  sum((x[,"lateaircraftdelay"] > 0) & (x[,"lateaircraftdelay"] <= 60)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/LadelayAnn[1]
+LadelayRateAnnSep[2] <-  sum((x[,"lateaircraftdelay"] > 60) & (x[,"lateaircraftdelay"] <= 240)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/LadelayAnn[1]
+LadelayRateAnnSep[3] <-  sum((x[,"lateaircraftdelay"] > 240) & (x[,"lateaircraftdelay"] <= 720)
+                              & (x[,"year"] == 2002), na.rm = TRUE)/LadelayAnn[1]
+LadelayRateAnnSep[4] <-  sum((x[,"lateaircraftdelay"] > 720) & (x[,"year"] == 2002), 
+                              na.rm = TRUE)/SecdelayAnn[1]
+LadelayRateAnnSepTotal<-rbind(LadelayRateAnnSepTotal,LadelayRateAnnSep)
+
+LadelayRateAnnSep[1] <-  sum((x[,"lateaircraftdelay"] > 0) & (x[,"lateaircraftdelay"] <= 60)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/LadelayAnn[2]
+LadelayRateAnnSep[2] <-  sum((x[,"lateaircraftdelay"] > 60) & (x[,"lateaircraftdelay"] <= 240)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/LadelayAnn[2]
+LadelayRateAnnSep[3] <-  sum((x[,"lateaircraftdelay"] > 240) & (x[,"lateaircraftdelay"] <= 720)
+                              & (x[,"year"] == 2005), na.rm = TRUE)/LadelayAnn[2]
+LadelayRateAnnSep[4] <-  sum((x[,"lateaircraftdelay"] > 720) & (x[,"year"] == 2005), 
+                              na.rm = TRUE)/LadelayAnn[2]
+LadelayRateAnnSepTotal<-rbind(LadelayRateAnnSepTotal,LadelayRateAnnSep)
+
+LadelayRateAnnSepTotal
+```
+
+```{r}
+# Plot for Late Aircraft delay time range for each year.
+colnames(LadelayRateAnnSepTotal) = c("0-1h", "1-4h", "4-12h", "12h&over")
+barplot(LadelayRateAnnSepTotal,col=c("blue","lightblue"), beside=TRUE, 
+        main="Late Aircraft delay time rate for each year", xlab="Delay time")
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","lightblue"), pch = 1)
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+# State delay rate for each year. Top 5/Tail 5
+StaNumFlight <- table(x[,"originstate"])
+numSta <- dim(StaNumFlight)
+ArrdelayRateAnnSatTotal <- matrix(, nrow=0, ncol=numSta)
+ArrdelayRateAnnSta = double(numSta)
+for (i in 1:numSta){
+  ArrdelayRateAnnSta[i] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2002)
+                                   & x[,"originstate"] == i, na.rm=TRUE)/StaNumFlight[i]
+}
+
+ArrdelayRateAnnSatTotal <- rbind(ArrdelayRateAnnSatTotal,ArrdelayRateAnnSta)
+
+for (i in 1:numSta){
+  ArrdelayRateAnnSta[i] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2005)
+                                   & x[,"originstate"] == i, na.rm=TRUE)/StaNumFlight[i]
+}
+
+ArrdelayRateAnnSatTotal <- rbind(ArrdelayRateAnnSatTotal,ArrdelayRateAnnSta)
+
+colnames(ArrdelayRateAnnSatTotal) = c(1:numSta)
+```
+
+```{r}
+top20State02 <- head(sort(ArrdelayRateAnnSatTotal[1,],decreasing=TRUE), n = 10)
+# Plot for different states with top 10 arrival delay rate 2002.
+barplot(top20State02, col = "lightblue",
+        main="Arrival delay rate of top 10 States for 2002", xlab="States")
+```
+
+```{r}
+top10State05 <- head(sort(ArrdelayRateAnnSatTotal[1,],decreasing=TRUE), n = 10)
+# Plot for different states with top 10 arrival delay rate 2005.
+barplot(top10State05, col = "lightblue",
+        main="Arrival delay rate of top 10 States for 2005", xlab="States")
+```
+
+```{r}
+# Carrier delay rate for each year. Top 5/Tail 5
+# Arrival delay rate over years
+CarNumFlight <- table(x[,"uniquecarrier"])
+numCar <- dim(CarNumFlight)
+ArrdelayRateAnnCarTotal <- matrix(, nrow=0, ncol=numCar)
+ArrdelayRateAnnCar = double(numCar)
+for (i in 1:numCar){
+  ArrdelayRateAnnCar[i] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2002)
+                                   & x[,"uniquecarrier"] == i, na.rm=TRUE)/CarNumFlight[i]
+}
+
+ArrdelayRateAnnCarTotal <- rbind(ArrdelayRateAnnCarTotal,ArrdelayRateAnnCar)
+
+for (i in 1:numCar){
+  ArrdelayRateAnnCar[i] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2005)
+                                   & x[,"uniquecarrier"] == i, na.rm=TRUE)/CarNumFlight[i]
+}
+
+ArrdelayRateAnnCarTotal <- rbind(ArrdelayRateAnnCarTotal,ArrdelayRateAnnCar)
+
+colnames(ArrdelayRateAnnCarTotal) = c(1:numCar)
+```
+
+```{r}
+top10Carrier02 <- head(sort(ArrdelayRateAnnCarTotal[1,],decreasing=TRUE), n = 10)
+# Plot for different carriers with top 5 arrival delay rate 2002.
+barplot(top10Carrier02, col = "lightblue",
+        main="Arrival delay rate of top 5 carriers for 2002", xlab="Carriers")
+```
+
+```{r}
+top10Carrier05 <- head(sort(ArrdelayRateAnnCarTotal[2,],decreasing=TRUE), n = 10)
+# Plot for different carriers with top 5 arrival delay rate 2005.
+barplot(top10Carrier05, col = "lightblue",
+        main="Arrival delay rate of top 5 carriers for 2005", xlab="Carriers")
+```
+
+```{r}
+# Airport delay rate for each year. Top 5/Tail 5
+# Arrival delay rate over years
+AirNumFlight <- table(x[,"origin"])
+numOri <- dim(AirNumFlight)
+ArrdelayRateAnnAirportTotal <- matrix(, nrow=0, ncol=numOri)
+ArrdelayRateAnnAirport = double(numOri)
+for (i in 1:numOri){
+  ArrdelayRateAnnAirport[i] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2002)
+                                   & x[,"origin"] == i, na.rm = TRUE)/AirNumFlight[i]
+}
+
+ArrdelayRateAnnAirportTotal <- rbind(ArrdelayRateAnnAirportTotal,ArrdelayRateAnnAirport)
+
+for (i in 1:numOri){
+  ArrdelayRateAnnAirport[i] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2005)
+                                   & x[,"origin"] == i, na.rm = TRUE)/AirNumFlight[i]
+}
+
+ArrdelayRateAnnAirportTotal <- rbind(ArrdelayRateAnnAirportTotal,ArrdelayRateAnnAirport)
+
+colnames(ArrdelayRateAnnAirportTotal) = c(1:numOri)
+```
+
+```{r}
+top10Airport02 <- head(sort(ArrdelayRateAnnAirportTotal[1,],decreasing=TRUE), n = 10)
+# Plot for different airports with top 5 arrival delay rate 2002.
+barplot(top10Airport02, col = "lightblue",
+        main="Arrival delay rate of top 5 airport for 2002", xlab="Airports")
+```
+```{r}
+top10Airport05 <- head(sort(ArrdelayRateAnnAirportTotal[2,],decreasing=TRUE), n = 10)
+# Plot for different airports with top 5 arrival delay rate 2005.
+# 
+# colnames(top10Airport05) = c("0G6", "0M6", "06M", "02C", "01G", 
+  #                           "1G4", "2V2", "2S8", "0M5", "0M1" )
+barplot(top10Airport05, col = "lightblue",
+        main="Arrival delay rate of top 5 airport for 2005", xlab="Airports")
+```
