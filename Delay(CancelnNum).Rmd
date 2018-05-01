@@ -1,0 +1,145 @@
+---
+title: "Delay"
+author: "Dilin Chen"
+date: "4/30/2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(biganalytics)
+x <- attach.big.matrix("air0205.desc")
+air02 = x[x[,'year'] == '2002',]
+air05 = x[x[,'year'] == '2005',]
+```
+
+```{r}
+# Monthly
+# Monthly arrival delay rate.
+ArrdelayRateMonTotal <- matrix(, nrow = 0, ncol = 12)
+ArrdelayRateMon <- integer(12)
+for (j in 1:12){
+    ArrdelayRateMon[j] <-  sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2002) & 
+                                 (x[, "month"]==j), na.rm = TRUE)/sum((x[,"year"] ==2002)
+                                                                      & (x[, "month"]==j),
+                                                                      na.rm = TRUE)
+  }
+ArrdelayRateMonTotal <- rbind(ArrdelayRateMonTotal, ArrdelayRateMon)
+for (j in 1:12){
+    ArrdelayRateMon[j] <-  sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2005) & 
+                                 (x[, "month"]==j), na.rm = TRUE)/sum((x[,"year"] ==2005)
+                                                                      & (x[, "month"]==j),
+                                                                      na.rm = TRUE)
+  }
+ArrdelayRateMonTotal <- rbind(ArrdelayRateMonTotal, ArrdelayRateMon)
+
+# plot
+matplot(t(ArrdelayRateMonTotal), type = c("b"), pch = 1, col = c("blue","darkblue")) 
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","darkblue"), pch = 1) 
+
+```
+
+```{r}
+# Day of week
+# Average daily arrival delay rate over weeks for each year.
+ArrdelayRateWeekThoTotal <- matrix(, nrow = 0, ncol = 7)
+ArrdelayRateWeekTho <- integer(7)
+for (j in 1:7){
+    ArrdelayRateWeekTho[j] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2002) 
+                                   & (x[, "dayofweek"]==j), 
+                                   na.rm = TRUE)/sum((x[,"year"] ==2002)
+                                                     & (x[, "dayofweek"]==j), 
+                                                     na.rm = TRUE)
+  }
+ArrdelayRateWeekThoTotal <- rbind(ArrdelayRateWeekThoTotal, ArrdelayRateWeekTho)
+for (j in 1:7){
+    ArrdelayRateWeekTho[j] <- sum((x[,"arrdelay"] > 0) & (x[,"year"] == 2005) 
+                                   & (x[, "dayofweek"]==j), 
+                                   na.rm = TRUE)/sum((x[,"year"] ==2005)
+                                                     & (x[, "dayofweek"]==j), 
+                                                     na.rm = TRUE)
+  }
+ArrdelayRateWeekThoTotal <- rbind(ArrdelayRateWeekThoTotal, ArrdelayRateWeekTho)
+
+# plot
+matplot(t(ArrdelayRateWeekThoTotal), type = c("b"), pch = 1, col = c("blue","darkblue"))
+legend("bottomleft", legend = c("2002","2005"), col = c("blue","darkblue"), pch = 1) 
+```
+
+```{r}
+# Airports with top 5 arrival delay rate
+AirNumFlight <- table(x[,"origin"])
+numOri <- dim(AirNumFlight)
+ArrdelayRateAnnAirportTotal <- matrix(, nrow=0, ncol=numOri)
+ArrdelayRateAnnAirport = double(numOri)
+for (i in 1:numOri){
+  ArrdelayRateAnnAirport[i] <- sum((air02[,"arrdelay"] > 0) & air02[,"origin"] == i, 
+                                   na.rm = TRUE)/AirNumFlight[i]
+}
+Air1 <- sort(ArrdelayRateAnnAirport,decreasing=TRUE)
+ArrdelayRateAnnAirportTotal <- rbind(ArrdelayRateAnnAirportTotal, Air1)
+
+for (i in 1:numOri){
+  ArrdelayRateAnnAirport[i] <- sum((air05[,"arrdelay"] > 0) & air05[,"origin"] == i, 
+                                   na.rm = TRUE)/AirNumFlight[i]
+}
+Air2 <- sort(ArrdelayRateAnnAirport,decreasing=TRUE)
+ArrdelayRateAnnAirportTotal <- rbind(ArrdelayRateAnnAirportTotal, Air2)
+
+top5Airport = ArrdelayRateAnnAirportTotal[,1:5]
+colnames(top5Airport) = c("SUX/CKB","DUT/CYS","ORH/OGD","MAZ/ADK","JNU/ACK")
+barplot(top5Airport,col=c("lightblue","blue"), beside=TRUE, legend = c("2002","2005"), xlab = "Airport Code", ylab = "Arrival Delay Rate")
+```
+
+```{r}
+# Origin state
+# State delay rate for each year. Top 5/Tail 5
+StaNumFlight <- table(x[,"originstate"])
+numSta <- dim(StaNumFlight)
+ArrdelayRateAnnSatTotal <- matrix(, nrow=0, ncol=numSta)
+ArrdelayRateAnnSta = double(numSta)
+for (i in 1:numSta){
+  ArrdelayRateAnnSta[i] <- sum((air02[,"arrdelay"] > 0) & air02[,"originstate"] == i,
+                               na.rm=TRUE)/StaNumFlight[i]
+}
+Sta1 <- sort(ArrdelayRateAnnSta,decreasing=TRUE)
+ArrdelayRateAnnSatTotal <- rbind(ArrdelayRateAnnSatTotal, Sta1)
+
+for (i in 1:numSta){
+  ArrdelayRateAnnSta[i] <- sum((air05[,"arrdelay"] > 0) & air05[,"originstate"] == i,
+                               na.rm=TRUE)/StaNumFlight[i]
+}
+Sta2 <- sort(ArrdelayRateAnnSta,decreasing=TRUE)
+ArrdelayRateAnnSatTotal <- rbind(ArrdelayRateAnnSatTotal, Sta2)
+
+top5State = ArrdelayRateAnnSatTotal[,1:5]
+colnames(top5State) = c("MI/WV","MN/WY","AK/VT","MO/GA","MD/UT")
+barplot(top5State,col=c("lightblue","blue"), beside=TRUE, legend = c("2002","2005"), xlab = "State Code", ylab = "Arrival Delay Rate")
+```
+
+```{r}
+# Carrier delay rate for each year. Top 5/Tail 5
+# Arrival delay rate over years
+CarNumFlight <- table(x[,"uniquecarrier"])
+numCar <- dim(CarNumFlight)
+ArrdelayRateAnnCarTotal <- matrix(, nrow=0, ncol=numCar)
+ArrdelayRateAnnCar = double(numCar)
+for (i in 1:numCar){
+  ArrdelayRateAnnCar[i] <- sum((air02[,"arrdelay"] > 0) & air02[,"uniquecarrier"] == i,
+                               na.rm=TRUE)/CarNumFlight[i]
+}
+Car1 <- sort(ArrdelayRateAnnCar,decreasing=TRUE)
+ArrdelayRateAnnCarTotal <- rbind(ArrdelayRateAnnCarTotal,Car1)
+
+for (i in 1:numCar){
+  ArrdelayRateAnnCar[i] <- sum((air05[,"arrdelay"] > 0) & air05[,"uniquecarrier"] == i,
+                               na.rm=TRUE)/CarNumFlight[i]
+}
+Car2 <- sort(ArrdelayRateAnnCar,decreasing=TRUE)
+ArrdelayRateAnnCarTotal <- rbind(ArrdelayRateAnnCarTotal,Car2)
+
+top5Carrier = ArrdelayRateAnnCarTotal[,1:5]
+colnames(top5Carrier) = c("DL/B6","AS/FL","CO/XE","NM/EV","HP/F9")
+barplot(top5Carrier,col=c("lightblue","blue"), beside=TRUE, legend = c("2002","2005"), xlab = "Carrier Code", ylab = "Arrival Delay Rate")
+```
+
